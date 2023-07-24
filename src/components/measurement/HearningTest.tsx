@@ -1,5 +1,6 @@
 import { useAudioStore } from "@/store/audio";
 import { useUserRecordedData } from "@/store/data";
+import { AudioOscillator, frequency } from "@/utils/audio.logic";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
 const HearningTest = ({
@@ -9,19 +10,9 @@ const HearningTest = ({
   loud?: boolean;
   setCurrentComponent: Dispatch<SetStateAction<number>>;
 }) => {
-  const [
-    isPlaying,
-    volume,
-    isLeft,
-    playAudioInLoop,
-    pauseAudio,
-    setAudioVolume,
-  ] = useAudioStore((state) => [
-    state.isPlaying,
+  const [volume, isLeft, setAudioVolume] = useAudioStore((state) => [
     state.volume,
     state.isLeft,
-    state.playAudioInLoop,
-    state.pauseAudio,
     state.setAudioVolume,
   ]);
 
@@ -41,6 +32,12 @@ const HearningTest = ({
 
   const [volumeData, setVolumeData] = useState<number[]>([]);
 
+  const [audio, setAudio] = useState<AudioOscillator>();
+
+  useEffect(() => {
+    setAudio(new AudioOscillator(frequency[currentTone - 1], isLeft ? -1 : 1));
+  }, [currentTone]);
+
   useEffect(() => {
     setAudioVolume(0);
   }, [setAudioVolume, currentTone]);
@@ -58,10 +55,8 @@ const HearningTest = ({
           value={volume}
           type="range"
           onChange={(e) => {
-            if (!isPlaying) {
-              playAudioInLoop("magicTree");
-            }
             setAudioVolume(Number(e.target.value));
+            audio?.volume(Number(e.target.value));
           }}
         />
         <br />
@@ -75,7 +70,7 @@ const HearningTest = ({
         <button
           className="bg-black/80 text-white font-medium px-8 py-2 rounded-sm text-lg"
           onClick={() => {
-            pauseAudio();
+            audio?.destroy();
             if (currentTone === 8) {
               (isLeft
                 ? loud
